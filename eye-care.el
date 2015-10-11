@@ -44,38 +44,32 @@ nil    - no visible reminder.")
 
 (defvar eye-care-display-duration 10)
 
+(defvar eye-care-timer nil)
+
+(defvar eye-care-interval (* 30 60))
+
 ;;; Functions
 
-(defun eye-care-display-message (string mins)
+(defun eye-care-check ()
+  "Wrapper show eye-care-display-message."
+  (eye-care-display-message "撸代码有段时间了，请休息一下眼睛，健康要紧！\nPlease rest eyes"))
+
+(defun eye-care-display-message (string)
   "Display a reminder about an eye care."
   (if eye-care-audibe (beep 1))
-  (and (listp mins)
-       (= (length mins) 1)
-       (setq mins (car mins)
-             string (car string)))
   (cond ((eq eye-care-display-format 'window)
          (let ((time (format-time-string "%a %b %c "))
                err)
-           (condition-case err
-               (funcall eye-care-disp-window-function
-                        (if (listp mins)
-                            (mapcar 'number-to-string mins)
-                          (number-to-string mins))
-                        time string)
-             (wrong-type-argument
-              (if (not (listp mins))
-                  (signal (car err) (cdr err))
-                (message "Argtype error in `eye-care-window-function'")
-
-                (funcall eye-care-disp-window-function
-                         (number-to-string (car mins)) time
-                         (car string))))))
+           (message time)
+           ;;show
+           (funcall eye-care-disp-window-function string))
+         ;;定时关闭buffer
          (run-at-time (format "%d sec" eye-care-display-duration)
                       nil
                       eye-care-delete-window-function))))
 
 
-(defun eye-care-disp-window (min-to-app new-time eye-care-msg)
+(defun eye-care-disp-window (eye-care-msg)
   "Display appointment due in MIN-TO-APP (a string) minutes.
 NEW-TIME is a string giving the current date.
 Displays the appointment message EYE-CARE-MSG in a separate buffer.
@@ -99,9 +93,7 @@ separate appointment."
         (when (>= (window-height) (* 2 window-min-height))
           (select-window (split-window))))
       (switch-to-buffer eye-care-disp-buf))
-    (or (listp min-to-app)
-        (setq min-to-app (list min-to-app)
-              eye-care-msg (list eye-care-msg)))
+    (setq eye-care-msg (list eye-care-msg))
     (setq buffer-read-only nil
           buffer-undo-list t)
     (erase-buffer)
@@ -123,7 +115,7 @@ separate appointment."
     ;;walk(traversal) all windows
     (walk-windows (lambda (w)
                     (when (< bottom-edge (setq next-bottom-edge
-                                               (nth 3 (window-edges))))
+                                               (nth 3 (window-edges w))))
                       (setq bottom-edge next-bottom-edge
                             lowest-window w))) 'nomini)
     (select-window lowest-window)))
@@ -139,7 +131,56 @@ Usually just deletes the appointment buffer."
   (if eye-care-audibe
       (beep 1)))
 
-(eye-care-display-message "hi" 1)
+;;;###autoload
+(defun eye-care-activate (&optional arg)
+  "Toggle eye care"
+  (interactive "P")
+  (let ((eye-care-active eye-care-timer))
+    (when eye-care-timer
+      (cancel-timer eye-care-timer)
+      (setq eye-care-timer nil))
+    (if eye-care-active
+        (progn
+          (message "start eye-care")
+          (setq eye-care-timer (run-at-time t eye-care-interval 'eye-care-check)))
+      (message "eye care disabled"))))
+
+;;;###autoload
+(defun eye-care-start ()
+  "Start eye care."
+  (interactive)
+  (if eye-care-timer
+      (message "Eye care already running!")
+    (progn
+      (when eye-care-timer
+        (cancel-timer eye-care-timer)
+        (setq eye-care-timer nil))
+      (when (eq eye-care-display-duration eye-care-interval)
+        (setq eye-care-display-duration
+              (- eye-care-display-duration 1)))
+      (message "start eye care!")
+      (setq eye-care-timer (run-at-time t eye-care-interval 'eye-care-check)))))
+
+;;;###autoload
+(defun eye-care-stop ()
+  "Stop eye care."
+  (interactive)
+  (message "stop eye care!")
+  (when eye-care-timer
+    (cancel-timer eye-care-timer)
+    (setq eye-care-timer nil)))
+
+;;;###autoload
+(defun set-eye-care-interval (interval)
+  "Set eye care `interval'"
+  (interactive "nEnter eye care interval mins:")
+  (setq eye-care-interval (* interval 60)))
+
+;;;###autoload
+(defun set-eye-care-duration (duration)
+  "Set eye care `duration'"
+  (interactive "nEnter eye care message duration seconds:")
+  (setq eye-care-display-duration duration))
 
 (provide 'eye-care)
 
