@@ -42,7 +42,7 @@ nil    - no visible reminder.")
 (defvar eye-care-disp-window-function 'eye-care-disp-window)
 (defvar eye-care-delete-window-function 'eye-care-delete-window)
 
-(defvar eye-care-display-duration 10)
+(defvar eye-care-display-duration 60)
 
 (defvar eye-care-timer nil)
 
