@@ -1,7 +1,8 @@
 # eye-care
 To remind the rest eyes
 
-# screen
+# screenshot
+![screenshot](https://raw.githubusercontent.com/Emacs-Phoenix/eye-care/master/screenshot.png)
 
 ## Install
 Just drop `eye-care.el`. somewhere in your `load-path`.
